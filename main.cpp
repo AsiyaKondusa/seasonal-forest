@@ -128,6 +128,14 @@ Mat4 modelMatrix(const TreeInstance& t) {
          * scaling(t.scale, t.scale, t.scale);
 }
 
+// Same as modelMatrix, but the canopy gets an extra scale s around its base (y = 1)
+Mat4 canopyMatrix(const TreeInstance& t, float s) {
+    return modelMatrix(t)
+         * translation(0, 1, 0)
+         * scaling(s, s, s)
+         * translation(0, -1, 0);
+}
+
 int main() {
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -175,10 +183,12 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         drawTerrain(renderer);
 
+           // For now the canopy pulses between 60% and 140% size so you can see it work
+        float canopyScale = 1.0f + 0.4f * sinf(orbitAngle * 2.0f);
+
         for (const auto& t : trees) {
-            Mat4 model = modelMatrix(t);
-            drawMesh(renderer, trunk,  model);
-            drawMesh(renderer, canopy, model);
+            drawMesh(renderer, trunk,  modelMatrix(t));
+            drawMesh(renderer, canopy, canopyMatrix(t, canopyScale));
         }
 
         SDL_RenderPresent(renderer);
