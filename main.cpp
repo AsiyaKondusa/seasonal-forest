@@ -36,12 +36,12 @@ void drawLine(SDL_Renderer* r, int x0, int y0, int x1, int y1) {
     }
 }
 
-// Moves a world point into camera view: camera is 2 units above the ground,
-// and the world is pushed 6 units away from the camera.
+// The current camera matrix. main() updates it every frame.
+Mat4 gView = Mat4::identity();
+
+// Moves a world point into camera view using the view matrix.
 Vector3 toView(Vector3 v) {
-    v.y -= 2.0f;
-    v.z += 6.0f;
-    return v;
+    return transform(gView, v);
 }
 
 // Draw one 3D edge: move into view, skip if behind the camera, project, draw.
@@ -155,6 +155,8 @@ int main() {
         {{ 0, 0, 8}, 0.9f, 2.6f},
         {{ 4, 0, 9}, 1.0f, 0.4f},
     };
+
+        float orbitAngle = 0.0f;
     
     while (running) {
         SDL_Event e;
@@ -162,16 +164,25 @@ int main() {
             if (e.type == SDL_QUIT) running = false;
         }
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+          // 1. Move the camera
+        orbitAngle += 0.01f;
+        gView = translation(0, -3, 11) * rotationY(orbitAngle) * translation(0, 0, -5);
 
+        // 2. Clear the screen to black
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         drawTerrain(renderer);
-                for (const auto& t : trees) {
+
+        for (const auto& t : trees) {
             Mat4 model = modelMatrix(t);
             drawMesh(renderer, trunk,  model);
             drawMesh(renderer, canopy, model);
         }
 
         SDL_RenderPresent(renderer);
+        SDL_Delay(16);
     }
 
     SDL_DestroyRenderer(renderer);
