@@ -116,6 +116,18 @@ void drawMesh(SDL_Renderer* r, const Mesh& m, const Mat4& model) {
     }
 }
 
+struct TreeInstance {
+    Vector3 position;
+    float scale;
+    float yaw;      // rotation around Y, in radians
+};
+
+Mat4 modelMatrix(const TreeInstance& t) {
+    return translation(t.position.x, t.position.y, t.position.z)
+         * rotationY(t.yaw)
+         * scaling(t.scale, t.scale, t.scale);
+}
+
 int main() {
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -133,6 +145,17 @@ int main() {
         std::cout << "Could not load .obj files. Run from the forest folder.\n";
         return 1;
     }
+
+        std::vector<TreeInstance> trees = {
+        {{-3, 0, 3}, 1.0f, 0.2f},
+        {{ 2, 0, 2}, 1.3f, 1.1f},
+        {{-1, 0, 5}, 0.8f, 2.0f},
+        {{ 3, 0, 6}, 1.1f, 0.7f},
+        {{-4, 0, 7}, 1.2f, 1.7f},
+        {{ 0, 0, 8}, 0.9f, 2.6f},
+        {{ 4, 0, 9}, 1.0f, 0.4f},
+    };
+    
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -142,9 +165,11 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
         drawTerrain(renderer);
-        Mat4 model = translation(0, 0, 5) * rotationY(0.5f) * scaling(1, 1, 1);
-        drawMesh(renderer, trunk,  model);
-        drawMesh(renderer, canopy, model);
+                for (const auto& t : trees) {
+            Mat4 model = modelMatrix(t);
+            drawMesh(renderer, trunk,  model);
+            drawMesh(renderer, canopy, model);
+        }
 
         SDL_RenderPresent(renderer);
     }
