@@ -5,10 +5,11 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include "mat4.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-struct Vector3 { float x, y, z; };
+
 struct Point2  { int x, y; };
 
 Point2 project(const Vector3& v) {
@@ -107,12 +108,10 @@ Mesh loadOBJ(const std::string& filename) {
     return mesh;
 }
 
-void drawMesh(SDL_Renderer* r, const Mesh& m, Vector3 offset) {
+void drawMesh(SDL_Renderer* r, const Mesh& m, const Mat4& model) {
     for (const auto& e : m.edges) {
-        Vector3 a = m.verts[e.first];
-        Vector3 b = m.verts[e.second];
-        a.x += offset.x; a.y += offset.y; a.z += offset.z;
-        b.x += offset.x; b.y += offset.y; b.z += offset.z;
+        Vector3 a = transform(model, m.verts[e.first]);
+        Vector3 b = transform(model, m.verts[e.second]);
         drawEdge3D(r, a, b);
     }
 }
@@ -143,8 +142,9 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
         drawTerrain(renderer);
-        drawMesh(renderer, trunk,  {0, 0, 5});
-        drawMesh(renderer, canopy, {0, 0, 5});
+        Mat4 model = translation(0, 0, 5) * rotationY(0.5f) * scaling(1, 1, 1);
+        drawMesh(renderer, trunk,  model);
+        drawMesh(renderer, canopy, model);
 
         SDL_RenderPresent(renderer);
     }
