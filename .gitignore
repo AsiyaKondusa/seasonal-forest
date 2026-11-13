@@ -1,2 +1,4 @@
 forest
 *_test
+*.o
+*.blend1
