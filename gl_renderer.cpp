@@ -92,7 +92,8 @@ GLRenderer::~GLRenderer() { if (context) SDL_GL_DeleteContext(context); }
 void GLRenderer::beginFrame(const Mat4& view, float sunX, float sunY, float sunZ) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
-    loadMatrix(view);
+    // The software camera uses positive view-space Z; OpenGL looks down negative Z.
+    loadMatrix(scaling(1.0f, 1.0f, -1.0f) * view);
     // Directional light: w=0; the vector is transformed by the current view matrix.
     GLfloat light[] = {sunX, sunY, sunZ, 0.0f};
     glLightfv(GL_LIGHT0, GL_POSITION, light);
