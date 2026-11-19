@@ -5,7 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cmath>
 #include "mat4.h"
+#include "gl_renderer.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -73,42 +75,7 @@ void drawTerrain(SDL_Renderer* r) {
         }
     }
 }
-struct Mesh {
-    std::vector<Vector3> verts;
-    std::vector<std::pair<int,int>> edges;
-};
-
-Mesh loadOBJ(const std::string& filename) {
-    Mesh mesh;
-    std::ifstream file(filename);
-    std::string line;
-
-    while (std::getline(file, line)) {
-        std::istringstream ss(line);
-        std::string tag;
-        ss >> tag;                       // first word: "v", "f", ...
-
-        if (tag == "v") {                // a vertex: read x y z
-            Vector3 v;
-            ss >> v.x >> v.y >> v.z;
-            mesh.verts.push_back(v);
-        }
-        else if (tag == "f") {           // a face: read its vertex numbers
-            std::vector<int> idx;
-            std::string token;
-            while (ss >> token) {
-                idx.push_back(std::stoi(token) - 1);   // OBJ counts from 1
-            }
-            // connect each vertex to the next, and the last back to the first
-            for (size_t k = 0; k < idx.size(); k++) {
-                mesh.edges.push_back({idx[k], idx[(k + 1) % idx.size()]});
-            }
-        }
-    }
-    return mesh;
-}
-
-void drawMesh(SDL_Renderer* r, const Mesh& m, const Mat4& model) {
+void drawMeshWireframe(SDL_Renderer* r, const Mesh& m, const Mat4& model) {
     for (const auto& e : m.edges) {
         Vector3 a = transform(model, m.verts[e.first]);
         Vector3 b = transform(model, m.verts[e.second]);
@@ -136,23 +103,51 @@ Mat4 canopyMatrix(const TreeInstance& t, float s) {
          * translation(0, -1, 0);
 }
 
-int main() {
+Mesh makeTerrain() {
+    Mesh terrain;
+    const int n = 10;
+    for (int z = 0; z <= n; ++z)
+        for (int x = 0; x <= n; ++x)
+            terrain.verts.push_back({x - n / 2.0f, 0.0f, static_cast<float>(z)});
+    terrain.normals.push_back({0, 1, 0});
+    for (int z = 0; z < n; ++z) for (int x = 0; x < n; ++x) {
+        int a = z * (n + 1) + x, b = a + 1, c = a + n + 1, d = c + 1;
+        terrain.faces.push_back({{a,0},{c,0},{d,0},{b,0}});
+    }
+    return terrain;
+}
+
+int main(int argc, char** argv) {
+    const bool wireframe = argc > 1 && std::string(argv[1]) == "--wireframe";
     SDL_Init(SDL_INIT_VIDEO);
+    if (!wireframe) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    }
 
     SDL_Window* window = SDL_CreateWindow(
         "Seasonal Forest",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        WIDTH, HEIGHT, 0);
-
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+        WIDTH, HEIGHT, wireframe ? 0 : SDL_WINDOW_OPENGL);
+    if (!window) { std::cerr << "Could not create window: " << SDL_GetError() << "\n"; SDL_Quit(); return 1; }
+    SDL_Renderer* renderer = wireframe ? SDL_CreateRenderer(window, -1, 0) : nullptr;
+    GLRenderer* gl = wireframe ? nullptr : new GLRenderer(window, WIDTH, HEIGHT);
+    if (!wireframe && !gl->valid()) { std::cerr << "Could not create OpenGL context: " << SDL_GetError() << "\n"; delete gl; SDL_DestroyWindow(window); SDL_Quit(); return 1; }
 
     bool running = true;
     Mesh trunk  = loadOBJ("trunk.obj");
     Mesh canopy = loadOBJ("canopy.obj");
-    if (trunk.verts.empty() || canopy.verts.empty()) {
+    if (trunk.verts.empty() || canopy.verts.empty() || trunk.faces.empty() || canopy.faces.empty()) {
         std::cout << "Could not load .obj files. Run from the forest folder.\n";
+        delete gl;
+        if (renderer) SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return 1;
     }
+    Mesh terrain = makeTerrain();
 
         std::vector<TreeInstance> trees = {
         {{-3, 0, 3}, 1.0f, 0.2f},
@@ -176,26 +171,33 @@ int main() {
         orbitAngle += 0.01f;
         gView = translation(0, -3, 11) * rotationY(orbitAngle) * translation(0, 0, -5);
 
-        // 2. Clear the screen to black
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        drawTerrain(renderer);
-
-           // For now the canopy pulses between 60% and 140% size so you can see it work
+        // Temporary animation until the season state machine is integrated.
         float canopyScale = 1.0f + 0.4f * sinf(orbitAngle * 2.0f);
 
-        for (const auto& t : trees) {
-            drawMesh(renderer, trunk,  modelMatrix(t));
-            drawMesh(renderer, canopy, canopyMatrix(t, canopyScale));
+        if (wireframe) {
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            drawTerrain(renderer);
+            for (const auto& t : trees) {
+                drawMeshWireframe(renderer, trunk, modelMatrix(t));
+                drawMeshWireframe(renderer, canopy, canopyMatrix(t, canopyScale));
+            }
+            SDL_RenderPresent(renderer);
+        } else {
+            gl->beginFrame(gView, -0.35f, 0.8f, -0.45f);
+            gl->drawMesh(terrain, Mat4::identity(), 0.30f, 0.42f, 0.24f);
+            for (const auto& t : trees) {
+                gl->drawMesh(trunk, modelMatrix(t), 0.34f, 0.19f, 0.08f);
+                gl->drawMesh(canopy, canopyMatrix(t, canopyScale), 0.12f, 0.48f, 0.16f);
+            }
+            gl->endFrame();
         }
-
-        SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
 
-    SDL_DestroyRenderer(renderer);
+    delete gl;
+    if (renderer) SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
