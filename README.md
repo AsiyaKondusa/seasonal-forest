@@ -9,9 +9,10 @@ Repository: https://github.com/AsiyaKondusa/seasonal-forest
 
 ## Current status
 
-Done: Vector3 and Mat4 (`mat4.h`), perspective projection, Bresenham lines,
-terrain grid, OBJ loader, 7 trees each with its own model matrix, orbiting
-camera, canopy scaling around its base.
+Done: Vector3 and Mat4 (`mat4.h`), the SDL2 OpenGL renderer with filled OBJ
+faces, depth testing and directional lighting, plus the original software
+wireframe mode (`./forest --wireframe`). The OBJ loader reads faces and
+normals; it computes a face normal when a model does not provide one.
 
 Remaining work and who does what: see `TASKS.md`.
 
@@ -32,7 +33,7 @@ Remaining work and who does what: see `TASKS.md`.
 
 ```
 sudo apt update
-sudo apt install build-essential libsdl2-dev git
+sudo apt install build-essential libsdl2-dev libgl1-mesa-dev mesa-utils git
 ```
 
 Check it worked: `g++ --version` and `git --version` both print a version.
@@ -182,7 +183,8 @@ deciding.
 
 ## 8. Project files
 
-- `main.cpp`: window, main loop, projection, drawing, OBJ loader, camera
+- `main.cpp`: window, main loop, terrain and tree instances, camera
+- `gl_renderer.h`, `gl_renderer.cpp`: OpenGL context, OBJ loader, filled mesh and point drawing
 - `mat4.h`: Mat4 and the transforms (translation, scaling, rotationY)
 - `trunk.obj`, `canopy.obj`: tree models (canopy base sits at y = 1)
 - `Makefile`: build rules
@@ -198,8 +200,7 @@ deciding.
   column-major, so transpose a `Mat4` before `glLoadMatrixf`.
 - `gView` is the camera matrix, set every frame in `main()`, and `toView()`
   applies it to a point.
-- `Mesh` stores vertices and edges only. Faces are not kept yet, so the loader
-  must be extended for filled polygons.
+- `Mesh` stores vertices, normals, polygon faces, and edges for wireframe mode.
 - `drawEdge3D` skips an edge if either end is behind the near plane (z < 0.1).
 - `canopyMatrix(t, s)` scales a canopy around its base at y = 1. The scale `s`
   currently pulses with a sine wave for testing and should come from the season.

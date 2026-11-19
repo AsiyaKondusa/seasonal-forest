@@ -1,6 +1,6 @@
 CXX      = g++
 CXXFLAGS = -std=c++17 -Wall
-LIBS     = -lSDL2
+LIBS     = -lSDL2 -lGL
 SRCS     = $(wildcard *.cpp)
 HDRS     = $(wildcard *.h)
 
