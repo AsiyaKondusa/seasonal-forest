@@ -206,6 +206,8 @@ int main(int argc, char** argv) {
         gView = translation(0, -3, 11) * rotationY(orbitAngle) * translation(0, 0, -5);
 
         SeasonState st = getSeasonState(simTime);
+        const char* seasonNames[] = {"Seasonal Forest - SPRING", "Seasonal Forest - SUMMER", "Seasonal Forest - AUTUMN", "Seasonal Forest - WINTER"};
+        SDL_SetWindowTitle(window, seasonNames[st.season]);
         float canopyScale = st.canopyScale;
         particles.updateParticles(paused ? 0.0f : dt, st.season);
 
