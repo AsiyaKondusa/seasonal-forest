@@ -1,3 +1,4 @@
+#include "season.h"
 #include <SDL2/SDL.h>
 #include <cstdlib>
 #include <vector>
@@ -172,7 +173,8 @@ int main(int argc, char** argv) {
         gView = translation(0, -3, 11) * rotationY(orbitAngle) * translation(0, 0, -5);
 
         // Temporary animation until the season state machine is integrated.
-        float canopyScale = 1.0f + 0.4f * sinf(orbitAngle * 2.0f);
+        SeasonState st = getSeasonState(SDL_GetTicks() / 1000.0f);
+        float canopyScale = st.canopyScale;
 
         if (wireframe) {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -185,11 +187,11 @@ int main(int argc, char** argv) {
             }
             SDL_RenderPresent(renderer);
         } else {
-            gl->beginFrame(gView, -0.35f, 0.8f, -0.45f);
-            gl->drawMesh(terrain, Mat4::identity(), 0.30f, 0.42f, 0.24f);
+            gl->beginFrame(gView, st.sunDir.x, st.sunDir.y, st.sunDir.z);
+            gl->drawMesh(terrain, Mat4::identity(), st.groundColor.r, st.groundColor.g, st.groundColor.b);
             for (const auto& t : trees) {
                 gl->drawMesh(trunk, modelMatrix(t), 0.34f, 0.19f, 0.08f);
-                gl->drawMesh(canopy, canopyMatrix(t, canopyScale), 0.12f, 0.48f, 0.16f);
+                gl->drawMesh(canopy, canopyMatrix(t, canopyScale), st.canopyColor.r, st.canopyColor.g, st.canopyColor.b);
             }
             gl->endFrame();
         }
