@@ -32,7 +32,7 @@ Agree on these names early and stick to them. Details are for each owner to deci
 - Test the file in our wireframe build before committing it. If the tree is sideways or huge, fix scale or axis in Blender.
 - Keep `.blend` source files in `models/` (or `blender/` for the timelapse).
 
-## Person A (name: ______): OpenGL renderer
+## Person A: OpenGL renderer
 Branch: `gl-renderer`. Files: `gl_renderer.h`, `gl_renderer.cpp`.
 
 1. Install `libgl1-mesa-dev` and check OpenGL works in your setup (for example with `mesa-utils` and `glxinfo -B`).
@@ -45,7 +45,7 @@ Branch: `gl-renderer`. Files: `gl_renderer.h`, `gl_renderer.cpp`.
 8. Keep the wireframe path working until the OpenGL version is stable.
 9. Checkpoint 3: write "Current OpenGL implementation" and "GitHub link and what remains".
 
-## Person B (name: ______): 3D Models & Scene Assets
+## Person B: 3D Models & Scene Assets
 Branch: `models`. Files: `models/`.
 
 1. In Blender, make the tree models (`trunk.obj` and `canopy.obj`) following the export rules above, and push them by Mon 16 Nov because Person A and Person C need them.
@@ -54,7 +54,7 @@ Branch: `models`. Files: `models/`.
 4. Help Person A test mesh loading once the OpenGL renderer is ready, and tune model proportions/terrain layout if needed.
 5. Checkpoint 3: help Person A and C capture the animation GIF and verify model normals/shading.
 
-## Person C (name: ______): Seasons, Colors & Blender Timelapse
+## Person C: Seasons, Colors & Blender Timelapse
 Branch: `seasons`. Files: `season.h`, `blender/`.
 
 1. Build the season state machine that loops forever, each season lasting a few seconds.
@@ -64,7 +64,7 @@ Branch: `seasons`. Files: `season.h`, `blender/`.
 5. Blender timelapse: once Person B pushes the models, build the forest in Blender, animate the four seasons (leaf color, canopy size, ground color), add falling leaves and snow with Blender's particle system, orbit the camera, and render a 20 to 30 second video. (Optionally automate with a `bpy` Python script saved in `blender/`.) Share the video by Drive link, not in git.
 6. Checkpoint 3: write color interpolation text and capture the animation GIF with Person A. Checkpoint 4: show that the season loop runs continuously.
 
-## Person D (name: ______): Particles & Final Integration
+## Person D: Particles & Final Integration
 Branch: `particles`. Files: `particles.h`, `particles.cpp`.
 
 1. Create a particle pool of fixed size (for example 500 particles), each with position, velocity, and an active flag.
