@@ -24,7 +24,8 @@ inline Color3 lerpColor(Color3 a, Color3 b, float t) {
 }
 
 inline SeasonState getSeasonState(float elapsed) {
-    const Color3 LIGHT_GREEN = {0.55f, 0.85f, 0.35f};
+    const Color3 BLOSSOM_PINK = {0.96f, 0.66f, 0.78f};
+    const Color3 LIGHT_GREEN  = {0.50f, 0.85f, 0.32f};
     const Color3 DEEP_GREEN  = {0.10f, 0.50f, 0.15f};
     const Color3 ORANGE      = {0.90f, 0.45f, 0.10f};
     const Color3 BROWN       = {0.45f, 0.28f, 0.12f};
@@ -45,7 +46,7 @@ inline SeasonState getSeasonState(float elapsed) {
     switch (st.season) {
     case SPRING: // snow melts, leaves grow back
         st.canopyScale = lerpf(0.2f, 1.0f, p);
-        st.canopyColor = lerpColor(BROWN, LIGHT_GREEN, p);
+        st.canopyColor = (p < 0.55f) ? lerpColor(BLOSSOM_PINK, LIGHT_GREEN, p / 0.55f) : LIGHT_GREEN;
         st.groundColor = lerpColor(SNOW, GRASS, p);
         break;
     case SUMMER:
