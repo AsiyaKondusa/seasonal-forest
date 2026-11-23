@@ -1,4 +1,5 @@
 #include "season.h"
+#include "particles.h"
 #include <SDL2/SDL.h>
 #include <cstdlib>
 #include <vector>
@@ -76,6 +77,7 @@ void drawTerrain(SDL_Renderer* r) {
         }
     }
 }
+
 void drawMeshWireframe(SDL_Renderer* r, const Mesh& m, const Mat4& model) {
     for (const auto& e : m.edges) {
         Vector3 a = transform(model, m.verts[e.first]);
@@ -150,7 +152,7 @@ int main(int argc, char** argv) {
     }
     Mesh terrain = makeTerrain();
 
-        std::vector<TreeInstance> trees = {
+    std::vector<TreeInstance> trees = {
         {{-3, 0, 3}, 1.0f, 0.2f},
         {{ 2, 0, 2}, 1.3f, 1.1f},
         {{-1, 0, 5}, 0.8f, 2.0f},
@@ -160,21 +162,52 @@ int main(int argc, char** argv) {
         {{ 4, 0, 9}, 1.0f, 0.4f},
     };
 
-        float orbitAngle = 0.0f;
-    
+    std::vector<Vector3> canopyCenters;
+    std::vector<float> canopyRadii;
+    for (const auto& t : trees) {
+        canopyCenters.push_back({t.position.x, t.position.y + 1.8f * t.scale, t.position.z});
+        canopyRadii.push_back(0.85f * t.scale);
+    }
+
+    ParticleSystem particles;
+    particles.init(canopyCenters, canopyRadii);
+
+    float orbitAngle = 0.0f;
+    float simTime = 0.0f;
+    bool paused = false;
+    Uint32 lastTicks = SDL_GetTicks();
+
     while (running) {
+        Uint32 now = SDL_GetTicks();
+        float dt = (now - lastTicks) / 1000.0f;
+        if (dt > 0.05f) dt = 0.05f;
+        lastTicks = now;
+
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = false;
+            if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.sym) {
+                    case SDLK_SPACE:  paused = !paused; break;
+                    case SDLK_1:      simTime = 0.0f * SEASON_LEN; break; // Spring
+                    case SDLK_2:      simTime = 1.0f * SEASON_LEN; break; // Summer
+                    case SDLK_3:      simTime = 2.0f * SEASON_LEN; break; // Autumn
+                    case SDLK_4:      simTime = 3.0f * SEASON_LEN; break; // Winter
+                    case SDLK_LEFT:   orbitAngle -= 0.12f; break;
+                    case SDLK_RIGHT:  orbitAngle += 0.12f; break;
+                }
+            }
         }
 
-          // 1. Move the camera
-        orbitAngle += 0.01f;
+        if (!paused) {
+            orbitAngle += 0.01f;
+            simTime += dt;
+        }
         gView = translation(0, -3, 11) * rotationY(orbitAngle) * translation(0, 0, -5);
 
-        // Temporary animation until the season state machine is integrated.
-        SeasonState st = getSeasonState(SDL_GetTicks() / 1000.0f);
+        SeasonState st = getSeasonState(simTime);
         float canopyScale = st.canopyScale;
+        particles.updateParticles(paused ? 0.0f : dt, st.season);
 
         if (wireframe) {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -185,6 +218,7 @@ int main(int argc, char** argv) {
                 drawMeshWireframe(renderer, trunk, modelMatrix(t));
                 drawMeshWireframe(renderer, canopy, canopyMatrix(t, canopyScale));
             }
+            particles.drawParticlesWireframe(renderer, st.season);
             SDL_RenderPresent(renderer);
         } else {
             gl->beginFrame(gView, st.sunDir.x, st.sunDir.y, st.sunDir.z);
@@ -193,6 +227,7 @@ int main(int argc, char** argv) {
                 gl->drawMesh(trunk, modelMatrix(t), 0.34f, 0.19f, 0.08f);
                 gl->drawMesh(canopy, canopyMatrix(t, canopyScale), st.canopyColor.r, st.canopyColor.g, st.canopyColor.b);
             }
+            particles.drawParticles(*gl, st.season);
             gl->endFrame();
         }
         SDL_Delay(16);
