@@ -138,8 +138,8 @@ int main(int argc, char** argv) {
     if (!wireframe && !gl->valid()) { std::cerr << "Could not create OpenGL context: " << SDL_GetError() << "\n"; delete gl; SDL_DestroyWindow(window); SDL_Quit(); return 1; }
 
     bool running = true;
-    Mesh trunk  = loadOBJ("trunk.obj");
-    Mesh canopy = loadOBJ("canopy.obj");
+    Mesh trunk  = loadOBJ("models/trunk.obj");
+    Mesh canopy = loadOBJ("models/canopy.obj");
     if (trunk.verts.empty() || canopy.verts.empty() || trunk.faces.empty() || canopy.faces.empty()) {
         std::cout << "Could not load .obj files. Run from the forest folder.\n";
         delete gl;
